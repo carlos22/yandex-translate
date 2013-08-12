@@ -1,5 +1,16 @@
 var request = require('request');
-var endpoint = 'http://translate.yandex.net/api/v1/tr.json';
+var endpoint = 'https://translate.yandex.net/api/v1.5/tr.json';
+var defaultOpts =  {key: 'invalid'};
+
+var objExtend = function(target) {
+    var sources = [].slice.call(arguments, 1);
+    sources.forEach(function (source) {
+        for (var prop in source) {
+            target[prop] = source[prop];
+        }
+    });
+    return target;
+};
 
 var jsonRequest = function(url, params, cb) {
   var handler = function(err, res) {
@@ -30,6 +41,7 @@ var translate  = function(text, opts, cb)
       format: 'text'
     };
   }
+  opts = objExtend(defaultOpts, opts);
   if (!opts.to)
     opts.to = 'en';
   if (!opts.format)
@@ -38,6 +50,7 @@ var translate  = function(text, opts, cb)
       form: {
         text: text,
         format: opts.format,
+        key: opts.key,
         lang: opts.from ? opts.from + '-' + opts.to : opts.to
       }
   }, cb);
@@ -56,14 +69,20 @@ var detect = function(text, opts, cb) {
       format: 'text'
     };
   }
+  opts = objExtend(defaultOpts, opts);
   if (!opts.format)
     opts.format = 'text';
   jsonRequest(endpoint + '/detect', {
         form: {
+          key: opts.key,
           text: text,
           format: opts.format
         }
      }, cb);
+};
+
+var defaults = function(opts) {
+    defaultOpts = opts;
 };
 
 
@@ -71,13 +90,14 @@ module.exports = translate;
 module.exports.translate = translate; // make translate 'default' exported function
 module.exports.detect = detect;
 module.exports.getLangs = getLanguages;
+module.exports.defaults = defaults;
 
 // simple inline test
 if (require.main === module) {
-  translate('Граждане Российской Федерации имеют право собираться мирно без оружия, проводить собрания, митинги и демонстрации, шествия и пикетирование', function(err, res) {
+  translate('Zwölf Boxkämpfer jagen Eva quer über den großen Sylter Deich', function(err, res) {
     console.assert(err === null, "Got transport level errors");
     console.assert(res.code === 200, "Non 200 HTTP code");
-    console.assert(res.lang === "ru-en", "Language autodetected incorrectly");
+    console.assert(res.lang === "de-en", "Language autodetected incorrectly");
     console.log(res.text.join());
   });
 }
